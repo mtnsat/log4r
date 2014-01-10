@@ -69,17 +69,20 @@ module Log4r
 
     def format_object(obj)
       klass = obj.class
-      case  
+      formatted = case  
         when klass == Exception
-        return "Caught #{obj.class}: #{obj.message}\n\t" +\
-          (obj.backtrace.nil? ? [] : obj.backtrace[0...@depth]).join("\n\t").gsub('"','\\\\"')
+          "Caught #{obj.class}: #{obj.message}\n\t" +\
+            (obj.backtrace.nil? ? [] : obj.backtrace[0...@depth]).join("\n\t")
         when klass == Hash
-          return obj.to_json.gsub('"','\\\\"')
+          obj.to_json
         when klass == String
-          return obj.gsub('"','\\\\"')
+          obj
         else # inspect the object
-          return "#{obj.class}: #{obj.inspect}".gsub('"','\\\\"')
+          "#{obj.class}: #{obj.inspect}"
       end
+      # Escape special characters in the string according to JSON encoding.
+      # to_json returns a string wrapped in quotes, so those quotes are removed.
+      formatted.to_json[1..-2]
     end
   end
 
