@@ -62,8 +62,13 @@ module Log4r
     def write(data)
       @queue.publish data, { routing_key: @queue.name } if @conn.connected? and @queue
     rescue Exception => e
-      @conn.send(:handle_network_failure, e)
-      create_channel if @conn.connected?
+      begin
+        @conn.send(:handle_network_failure, e)
+        create_channel if @conn.connected?
+      rescue Exception => e
+        stderr_log "rescued from: #{e}. Unable to handle network failure. Attempting to re-initialize the Bunny Client"
+        start_bunny
+      end
     end
 
   end
