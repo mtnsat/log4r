@@ -16,7 +16,7 @@ module Log4r
       @config ||= {:host => "localhost"}
       @config.symbolize_keys!
       @queue_name = @config.delete(:queue) || ''
-      start_bunny rescue nil
+      start_bunny
     end
 
     def load_config_file(name)
@@ -45,6 +45,8 @@ module Log4r
         create_channel
       rescue Bunny::TCPConnectionFailed => e
         stderr_log "rescued from: #{e}. Unable to connect to Rabbit Server"
+      rescue Exception => e
+        stderr_log "rescued from: #{e}. Encountered when attempting to initialize Bunny Client"
       end
     end
 
@@ -60,15 +62,11 @@ module Log4r
     private
 
     def write(data)
-      @queue.publish data, { routing_key: @queue.name } if @conn.connected? and @queue
+      start_bunny if @conn.nil?
+      @queue.publish data, { routing_key: @queue.name } if !@conn.nil? && @conn.connected? && @queue
     rescue Exception => e
-      begin
-        @conn.send(:handle_network_failure, e)
-        create_channel if @conn.connected?
-      rescue Exception => e
-        stderr_log "rescued from: #{e}. Unable to handle network failure. Attempting to re-initialize the Bunny Client"
-        start_bunny
-      end
+      @conn.send(:handle_network_failure, e)
+      create_channel if @conn.connected?
     end
 
   end
