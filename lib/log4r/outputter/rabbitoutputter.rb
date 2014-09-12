@@ -4,6 +4,7 @@ require 'logger'
 require "log4r/outputter/outputter"
 require 'bunny'
 require 'yaml'
+require 'pathname'
 
 module Log4r
   # See log4r/logserver.rb
@@ -12,25 +13,17 @@ module Log4r
     def initialize(_name, hash={})
       # Configuration defaults
       super(_name, hash)
-      stderr_log "Unable to find rabbit configuration file" unless load_config
+      stderr_log "Unable to find rabbit configuration file" unless load_config_file("rabbitmq.yml")
       @config ||= {:host => "localhost"}
-      @config.symbolize_keys!
       @queue_name = @config.delete(:queue) || ''
       start_bunny
     end
 
     def load_config_file(name)
-      path = "#{Rails.root}/config/#{name}"
+      path = Pathname(Dir.pwd).join('config', name)
       if File.exist?(path)
-        @config = YAML::load(IO.read(path)) 
-      end
-    end
-
-    def load_config
-      @config = if load_config_file("bunny.yml")
-        @config[Rails.env]
-      else
-        load_config_file("rabbitmq.yml")
+        # symbolize_keys without the active_support dependency
+        @config = Hash[YAML::load(IO.read(path)).map{|(k,v)| [k.to_sym,v]}]
       end
     end
 
@@ -58,7 +51,7 @@ module Log4r
       ch = @conn.create_channel
       @queue  = ch.queue(@queue_name, auto_delete: false, durable: true)
     end
-    
+
     private
 
     def write(data)

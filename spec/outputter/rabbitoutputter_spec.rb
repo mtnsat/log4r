@@ -1,22 +1,7 @@
 require 'spec_helper'
 
-# TODO: Refactor this out at some point:
-# Required because RabbitOutputter is expecting log4r getting used in a rails app
-class Log4r::RabbitOutputter::Rails
-end
-
-# TODO: Refactor this out at some point:
-# Required because RabbitOutputter is expecting to have HashWithIndifferenceAccess
-class Hash
-  def symbolize_keys!
-  end
-end
-
 describe "Log4r::RabbitOutputter" do
   subject { Log4r::RabbitOutputter.new("rabbit_outputter") }
-  before do
-    Log4r::RabbitOutputter::Rails.stub(:root).and_return("/some/path")
-  end
 
   it "can be initialized" do
     expect { Log4r::RabbitOutputter.new("rabbit_outputter") }.to_not raise_error
